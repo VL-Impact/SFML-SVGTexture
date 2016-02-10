@@ -6,47 +6,42 @@
 #include "nanosvg/nanosvg.h"
 #include "nanosvg/nanosvgrast.h"
 
+#include <memory>
+
 namespace sf
 {
 	bool SVGTexture::loadFromSvgFile (const std::string & filename, const std::string & units, float dpi) {
-		NSVGimage *image = NULL;
-		NSVGrasterizer *rast = NULL;
-		unsigned char* img = NULL;
-		int w, h;
-	
-		//printf("parsing %s\n", filename);
-		image = nsvgParseFromFile(filename.c_str(), units.c_str(), dpi);
+		//Smart ptr with custom deleter function
+		std::unique_ptr<NSVGimage, void(*)(NSVGimage*)> image (nsvgParseFromFile(filename.c_str(), units.c_str(), dpi), &nsvgDelete);
 		if (image == NULL) {
 			printf("Could not open SVG image.\n");
-			goto error;
+			return false;
 		}
+
+		int w, h;
 		w = (int)image->width;
-		h = (int)image->height;
-	
-		rast = nsvgCreateRasterizer();
+		h = (int)image->height;	
+		
+		//Smart ptr with custom deleter function
+		std::unique_ptr<NSVGrasterizer, void(*)(NSVGrasterizer*)> rast (nsvgCreateRasterizer(), &nsvgDeleteRasterizer);
+
 		if (rast == NULL) {
 			printf("Could not init rasterizer.\n");
-			goto error;
+			return false;
 		}
 	
-		img = (unsigned char*) malloc(w*h*4);
+		std::unique_ptr<unsigned char[]> img (new unsigned char[w*h*4]);
 		if (img == NULL) {
 			printf("Could not alloc image buffer.\n");
-			goto error;
+			return false;
 		}
 	
-		//printf("rasterizing image %d x %d\n", w, h);
-		nsvgRasterize(rast, image, 0,0,1, img, w, h, w*4);
+		//rasterizing image
+		nsvgRasterize(rast.get(), image.get(), 0,0,1, img.get(), w, h, w*4);
 	
 		this->create(w,h);
-		this->update(img, w,h, 0,0 );
+		this->update(img.get(), w,h, 0,0 );
 	
-		free(img);
 		return true;
-	error:
-		nsvgDeleteRasterizer(rast);
-		nsvgDelete(image);
-	
-		return false;
 	}
 }
