@@ -10,7 +10,7 @@
 
 namespace sf
 {
-	bool SVGTexture::loadFromSvgFile (const std::string & filename, const std::string & units, float dpi) {
+	bool SVGTexture::loadFromSvgFile (Texture& targetTexture, const std::string & filename, const std::string & units, float dpi) {
 		//Smart ptr with custom deleter function
 		std::unique_ptr<NSVGimage, void(*)(NSVGimage*)> image (nsvgParseFromFile(filename.c_str(), units.c_str(), dpi), &nsvgDelete);
 		if (image == NULL) {
@@ -39,8 +39,8 @@ namespace sf
 		//rasterizing image
 		nsvgRasterize(rast.get(), image.get(), 0,0,1, img.get(), w, h, w*4);
 	
-		this->create(w,h);
-		this->update(img.get(), w,h, 0,0 );
+		targetTexture.create(w,h);
+		targetTexture.update(img.get(), w,h, 0,0 );
 	
 		return true;
 	}
